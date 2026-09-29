@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Category, Product } from "@/content/products";
 import seedFile from "../../data/catalog.json";
-import { catalogKey, mediaBucket, mediaObjectKey } from "@/lib/bucket";
+import { mediaBucket, mediaObjectKey } from "@/lib/bucket";
 
 export const IMAGE_LIMIT = 30;
 
@@ -55,13 +55,13 @@ function readLocalCatalog(): CatalogData {
 export async function readCatalog(): Promise<CatalogData> {
   const bucket = await mediaBucket();
   if (!bucket) return readLocalCatalog();
-  const object = await bucket.get(catalogKey());
-  if (!object) {
+  const raw = await bucket.getCatalog();
+  if (raw === null) {
     // Display the checked-in seed without writing over an un-migrated catalog.
     return bundledSeed();
   }
   try {
-    const parsed = JSON.parse(await object.text()) as CatalogData;
+    const parsed = JSON.parse(raw) as CatalogData;
     if (!parsed || !Array.isArray(parsed.categories) || !Array.isArray(parsed.products)) return emptyCopy();
     return parsed;
   } catch {
@@ -72,10 +72,8 @@ export async function readCatalog(): Promise<CatalogData> {
 export async function writeCatalog(data: CatalogData) {
   const bucket = await mediaBucket();
   if (bucket) {
-    if (!(await bucket.exists(catalogKey()))) throw new Error("migration");
-    await bucket.put(catalogKey(), JSON.stringify(data), {
-      httpMetadata: { contentType: "application/json" },
-    });
+    if (!(await bucket.catalogExists())) throw new Error("migration");
+    await bucket.putCatalog(JSON.stringify(data));
     return;
   }
   if (process.env.VERCEL) {
