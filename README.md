@@ -30,7 +30,13 @@ Without Blob configuration, local development reads `data/catalog.json` and save
 
 English: http://localhost:3000/en
 
-The site is marked `noindex`.
+Production is indexable. `/robots.txt` blocks `/admin` and `/api/` and points to `/sitemap.xml`, which lists every page, category and product in both languages. Preview deployments stay `noindex`.
+
+## Google Search Console
+
+1. Add a **Domain** property for `roytech.solutions` (DNS TXT record in Porkbun) or a **URL prefix** property for `https://north-hunter-taleb.roytech.solutions`.
+2. For the URL-prefix HTML-tag method, copy only the `content` value into the `GOOGLE_SITE_VERIFICATION` Production env var and redeploy.
+3. Under **Sitemaps**, submit `sitemap.xml`.
 
 ## Deploy on Vercel
 

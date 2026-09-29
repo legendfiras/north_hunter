@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { business } from "@/content/business";
 import { dirFor, isLocale, locales, type Locale } from "@/i18n";
 import { siteContent } from "@/content/site";
+import { indexRobots, localeAlternates } from "@/lib/seo";
 import { logoAlt } from "@/components/Logo";
 import { SiteChrome } from "@/components/SiteChrome";
 
@@ -34,14 +35,8 @@ export async function generateMetadata({
       template: `%s | ${siteContent.storeName[locale]}`,
     },
     description: meta.description,
-    robots: { index: false, follow: false },
-    alternates: {
-      canonical: `/${locale}`,
-      languages: {
-        en: "/en",
-        ar: "/ar",
-      },
-    },
+    robots: indexRobots,
+    alternates: localeAlternates(locale, ""),
     openGraph: {
       title: meta.title,
       description: meta.description,

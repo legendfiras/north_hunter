@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { business } from "@/content/business";
 import { defaultLocale, dirFor, isLocale, type Locale } from "@/i18n";
 import { siteContent } from "@/content/site";
+import { indexRobots, siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -26,12 +27,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(siteUrl),
   title: siteContent.meta.en.title,
   description: siteContent.meta.en.description,
   applicationName: business.legalName.en,
   authors: [{ name: business.legalName.en }],
-  robots: { index: false, follow: false },
+  robots: indexRobots,
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   icons: business.images.logo.trim()
     ? {
         icon: [

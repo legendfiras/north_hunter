@@ -4,6 +4,7 @@ import { isLocale, type Locale } from "@/i18n";
 import { siteContent } from "@/content/site";
 import { parseCatalogQuery } from "@/lib/catalog";
 import { categoryPath, homePath } from "@/lib/paths";
+import { localeAlternates } from "@/lib/seo";
 import { readCatalog, toProducts } from "@/lib/store";
 import { CatalogView } from "@/components/CatalogView";
 import { Container } from "@/components/Container";
@@ -23,6 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!match) return {};
   return {
     title: match.name[locale],
+    alternates: localeAlternates(locale, `/categories/${match.id}`),
   };
 }
 

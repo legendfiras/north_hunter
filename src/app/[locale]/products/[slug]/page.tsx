@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isLocale, type Locale } from "@/i18n";
+import { localeAlternates } from "@/lib/seo";
 import { readCatalog, toProducts } from "@/lib/store";
 import { Container } from "@/components/Container";
 import { ProductDetails } from "@/components/ProductDetails";
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: product.name[locale],
     description: product.description[locale] || product.name[locale],
+    alternates: localeAlternates(locale, `/products/${product.slug}`),
   };
 }
 

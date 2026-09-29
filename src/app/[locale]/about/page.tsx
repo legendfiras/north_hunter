@@ -6,6 +6,7 @@ import { readCatalog, toProducts } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 import { homePath } from "@/lib/paths";
+import { localeAlternates } from "@/lib/seo";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContactBand } from "@/components/ContactBand";
 import { Container } from "@/components/Container";
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: siteContent.nav[locale].about,
     description: siteContent.aboutPage.paragraphs[locale][0],
-    robots: { index: false, follow: false },
+    alternates: localeAlternates(locale, "/about"),
   };
 }
 

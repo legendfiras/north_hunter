@@ -4,6 +4,7 @@ import { isLocale, type Locale } from "@/i18n";
 import { siteContent } from "@/content/site";
 import { parseCatalogQuery } from "@/lib/catalog";
 import { homePath, productsPath } from "@/lib/paths";
+import { localeAlternates } from "@/lib/seo";
 import { readCatalog, toProducts } from "@/lib/store";
 import { CatalogView } from "@/components/CatalogView";
 import { Container } from "@/components/Container";
@@ -22,6 +23,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: siteContent.catalog.allHeading[locale],
     description: siteContent.catalog.allIntro[locale],
+    alternates: localeAlternates(locale, "/products"),
   };
 }
 
