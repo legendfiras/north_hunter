@@ -230,8 +230,9 @@ export function Dashboard({ locale }: { locale: Locale }) {
       return;
     }
     form.reset();
+    setProducts(data.products);
+    setImageCount((count) => count + 1);
     setNotice(text.saved);
-    await load();
   }
 
   async function updateProduct(event: FormEvent<HTMLFormElement>, id: string) {
@@ -261,8 +262,8 @@ export function Dashboard({ locale }: { locale: Locale }) {
       return;
     }
     setEditing(null);
+    setProducts(data.products);
     setNotice(text.saved);
-    await load();
   }
 
   async function deleteProduct(id: string) {
