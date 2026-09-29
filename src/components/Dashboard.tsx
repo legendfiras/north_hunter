@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { upload } from "@vercel/blob/client";
 import type { Locale } from "@/i18n";
 import type { Category, Product } from "@/content/products";
 import { formatPrice } from "@/lib/price";
@@ -11,7 +12,7 @@ type CatalogResponse = {
   imageCount: number;
   imageLimit: number;
   directUpload?: boolean;
-  uploadUrl?: string;
+  pathname?: string;
   path?: string;
   id?: string;
   error?: string;
@@ -183,13 +184,12 @@ export function Dashboard({ locale }: { locale: Locale }) {
       body: JSON.stringify({ contentType: file.type, size: file.size, productId }),
     });
     const data = (await response.json()) as CatalogResponse;
-    if (!response.ok || !data.uploadUrl || !data.path) return { error: data.error || "upload" };
-    const uploaded = await fetch(data.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    if (!uploaded.ok) return { error: "upload" };
+    if (!response.ok || !data.pathname || !data.path) return { error: data.error || "upload" };
+    try {
+      await upload(data.pathname, file, { access: "public", handleUploadUrl: "/api/uploads" });
+    } catch {
+      return { error: "upload" };
+    }
     return { path: data.path, id: data.id ?? "" };
   }
 

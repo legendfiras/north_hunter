@@ -57,9 +57,8 @@ export async function readCatalog(): Promise<CatalogData> {
   if (!bucket) return readLocalCatalog();
   const object = await bucket.get(catalogKey());
   if (!object) {
-    const seed = bundledSeed();
-    await writeCatalog(seed);
-    return seed;
+    // Display the checked-in seed without writing over an un-migrated catalog.
+    return bundledSeed();
   }
   try {
     const parsed = JSON.parse(await object.text()) as CatalogData;
@@ -73,6 +72,7 @@ export async function readCatalog(): Promise<CatalogData> {
 export async function writeCatalog(data: CatalogData) {
   const bucket = await mediaBucket();
   if (bucket) {
+    if (!(await bucket.exists(catalogKey()))) throw new Error("migration");
     await bucket.put(catalogKey(), JSON.stringify(data), {
       httpMetadata: { contentType: "application/json" },
     });
@@ -86,6 +86,9 @@ export async function writeCatalog(data: CatalogData) {
 }
 
 export function storageResponse(error: unknown) {
+  if (error instanceof Error && error.message === "migration") {
+    return Response.json({ error: "migration" }, { status: 503 });
+  }
   if (error instanceof Error && error.message === "storage") {
     return Response.json({ error: "storage" }, { status: 503 });
   }

@@ -8,7 +8,7 @@ Phone and WhatsApp: +961 3 460 697
 
 Instagram and TikTok: @north_hunter_taleb
 
-The logo and hero are in `public/images/north-hunter/`. Product photos shipped with the site are in `public/uploads/` and are served as static files. Photos added from the dashboard are stored in the existing Cloudflare R2 bucket `north-hunter-media` and served from `/media/`.
+The logo and hero are in `public/images/north-hunter/`. Product photos shipped with the site are in `public/uploads/`. Dashboard photos and the editable catalog use Vercel Blob and are served from `/media/`.
 
 ## Stack
 
@@ -16,7 +16,7 @@ The logo and hero are in `public/images/north-hunter/`. Product photos shipped w
 - React 19
 - Tailwind CSS 4
 - Vercel for the app
-- Cloudflare R2 for the catalog and dashboard uploads, through the S3-compatible API
+- Vercel Blob for the editable catalog and dashboard uploads
 
 ## Run locally
 
@@ -26,7 +26,7 @@ npm run build
 npm start
 ```
 
-Without the R2 variables, the catalog is stored in `data/catalog.json` and new photos are stored in `public/uploads/`. Copy `.env.example` to `.env.local` and fill in the R2 values to use the same bucket as production.
+Without Blob configuration, local development reads `data/catalog.json` and saves new photos to `public/uploads/`. Copy `.env.example` to `.env.local` and set the Blob and admin values to use the production storage locally.
 
 English: http://localhost:3000/en
 
@@ -34,24 +34,11 @@ The site is marked `noindex`.
 
 ## Deploy on Vercel
 
-Do not create or delete the R2 bucket. The app reads and writes the existing `catalog.json` object and `files/` photos.
+Connect a **Public Vercel Blob store** to the Vercel project (Storage → Create → Blob). Vercel provides `BLOB_READ_WRITE_TOKEN` to the project; do not put it in git. The public store contains only product data and images. Browser uploads are authorized by the admin session before Blob issues an upload token.
 
-Set these server environment variables from `.env.example`:
+Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and a long random `ADMIN_SESSION_SECRET` as sensitive Production environment variables. The old hardcoded admin credentials are removed. Set all three before exposing the dashboard.
 
-- `R2_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET_NAME` (`north-hunter-media`)
-
-Create the access key in the Cloudflare dashboard for the existing bucket. Do not put the secret in git.
-
-Browser uploads go directly to R2 with a short-lived signed URL. Apply `r2-cors.json` to that bucket so the browser is allowed to upload:
-
-```bash
-npx wrangler r2 bucket cors set north-hunter-media --file r2-cors.json
-```
-
-That command changes CORS only. It does not delete objects.
+Before using the dashboard on the new deployment, migrate any live catalog changes in R2. With the R2 S3 credentials and Blob token set locally, run `node --env-file=.env.local scripts/migrate-r2-to-blob.mjs`. The script reads `catalog.json` and referenced `files/` images, verifies product/category counts, refuses to overwrite an existing Blob catalog, and never deletes R2 objects. If R2 is unavailable and you verify the four products in `data/catalog.json` are the complete catalog, run `node --env-file=.env.local scripts/bootstrap-blob-from-seed.mjs --confirm-seed`. Until one of those steps succeeds, the site displays the checked-in seed but the dashboard refuses writes to avoid replacing an unmigrated catalog.
 
 ```bash
 npx vercel deploy --prod
