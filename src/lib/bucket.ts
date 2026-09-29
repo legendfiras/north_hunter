@@ -65,6 +65,9 @@ function clientFor(config: R2Config) {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    // SDK 3.729+ adds checksum headers on GetObject and PutObject. R2 rejects them.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 
