@@ -1,0 +1,113 @@
+{
+  "categories": [
+    {
+      "id": "shotguns",
+      "name": {
+        "en": "Hunting shotguns",
+        "ar": "بنادق صيد"
+      }
+    },
+    {
+      "id": "cartridges",
+      "name": {
+        "en": "Cartridges",
+        "ar": "خراطيش"
+      }
+    },
+    {
+      "id": "clothing",
+      "name": {
+        "en": "Hunting clothing",
+        "ar": "ملابس الصيد"
+      }
+    },
+    {
+      "id": "optics",
+      "name": {
+        "en": "Optics",
+        "ar": "بصريات"
+      }
+    },
+    {
+      "id": "camping",
+      "name": {
+        "en": "Camping",
+        "ar": "التخييم"
+      }
+    }
+  ],
+  "products": [
+    {
+      "id": "p-francolin-desert",
+      "slug": "francolin-desert-410ga-barrel-76",
+      "name": {
+        "en": "Francolin Desert 410GA, 76 cm barrel",
+        "ar": "فرانكولين ديزرت 410، سبطانة 76 سم"
+      },
+      "category": "shotguns",
+      "images": [
+        "/uploads/francolin-desert-410.jpg"
+      ],
+      "description": {
+        "en": "Single-barrel .410 shotgun in a desert finish. 76 cm barrel. Made in Turkey.",
+        "ar": "بندقية صيد أحادية السبطانة عيار 410 بتشطيب صحراوي. سبطانة 76 سم. صناعة تركية."
+      },
+      "price": 130,
+      "featured": false
+    },
+    {
+      "id": "p-francolin-black",
+      "slug": "francolin-single-barrel-410-black",
+      "name": {
+        "en": "Francolin single barrel .410, black",
+        "ar": "فرانكولين أحادية السبطانة 410، أسود"
+      },
+      "category": "shotguns",
+      "images": [
+        "/uploads/francolin-black-410.jpg"
+      ],
+      "description": {
+        "en": "Single-barrel .410 shotgun with a black stock and an engraved receiver.",
+        "ar": "بندقية صيد أحادية السبطانة عيار 410 مع كعب أسود ومستقبل منقوش."
+      },
+      "price": 140,
+      "featured": false
+    },
+    {
+      "id": "p-francolin-camo",
+      "slug": "francolin-single-barrel-410-camo",
+      "name": {
+        "en": "Francolin single barrel .410, camo",
+        "ar": "فرانكولين أحادية السبطانة 410، تمويه"
+      },
+      "category": "shotguns",
+      "images": [
+        "/uploads/francolin-camo-410.jpg"
+      ],
+      "description": {
+        "en": "Single-barrel .410 shotgun with a grass camouflage stock and an engraved receiver.",
+        "ar": "بندقية صيد أحادية السبطانة عيار 410 مع كعب مموّه ومستقبل منقوش."
+      },
+      "price": 140,
+      "featured": false
+    },
+    {
+      "id": "p-francolin-wood",
+      "slug": "francolin-single-barrel-410ga",
+      "name": {
+        "en": "Francolin single barrel 410GA",
+        "ar": "فرانكولين أحادية السبطانة 410"
+      },
+      "category": "shotguns",
+      "images": [
+        "/uploads/francolin-wood-410.jpg"
+      ],
+      "description": {
+        "en": "Single-barrel .410 shotgun with a walnut stock and an engraved receiver.",
+        "ar": "بندقية صيد أحادية السبطانة عيار 410 مع كعب خشب الجوز ومستقبل منقوش."
+      },
+      "price": 140,
+      "featured": false
+    }
+  ]
+}

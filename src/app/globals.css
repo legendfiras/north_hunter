@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f1e7;
+  --foreground: #161815;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-forest: #1c1914;
+  --color-forest-deep: #0e0c0a;
+  --color-forest-mid: #2c261e;
+  --color-charcoal: #161411;
+  --color-ink: #161411;
+  --color-cream: #f3efe4;
+  --color-ivory: #f6f1e7;
+  --color-paper: #fbf7f0;
+  --color-gold: #c8963a;
+  --color-accent: #c8963a;
+  --color-gold-bright: #e2b15a;
+  --color-olive: #5d6438;
+  --color-moss: #5e6454;
+  --color-line: #e4dccb;
+  --font-sans: var(--font-outfit), var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-outfit), var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-ivory);
+  color: var(--color-charcoal);
+  font-family: var(--font-outfit), var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+}
+
+[lang="ar"] {
+  font-family: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-outfit), var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+}
+
+[lang="ar"] .font-display {
+  font-family: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+::selection {
+  background: #1c1914;
+  color: #f6f1e7;
+}
+
+#contact {
+  scroll-margin-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
