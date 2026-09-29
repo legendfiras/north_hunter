@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
+import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n";
 import type { Category, Product } from "@/content/products";
 import { formatPrice } from "@/lib/price";
@@ -141,11 +142,12 @@ function message(locale: Locale, error: string | undefined) {
   if (error === "used") return text.used;
   if (error === "missing") return text.missing;
   if (error === "upload") return text.upload;
-  if (error === "storage") return text.storage;
-  return "";
+  if (error === "storage" || error === "migration") return text.storage;
+  return text.storage;
 }
 
 export function Dashboard({ locale }: { locale: Locale }) {
+  const router = useRouter();
   const text = copy[locale];
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -157,18 +159,26 @@ export function Dashboard({ locale }: { locale: Locale }) {
   const [editing, setEditing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/catalog", { cache: "no-store" });
-    if (response.status === 401) {
-      window.location.assign("/admin");
-      return;
+    try {
+      const response = await fetch("/api/catalog", { cache: "no-store" });
+      if (response.status === 401) {
+        router.replace("/admin");
+        return;
+      }
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
+        return;
+      }
+      setCategories(data.categories);
+      setProducts(data.products);
+      setImageCount(data.imageCount);
+      setImageLimit(data.imageLimit);
+      setDirectUpload(data.directUpload === true);
+    } catch {
+      setNotice(copy[locale].storage);
     }
-    const data = (await response.json()) as CatalogResponse;
-    setCategories(data.categories);
-    setProducts(data.products);
-    setImageCount(data.imageCount);
-    setImageLimit(data.imageLimit);
-    setDirectUpload(data.directUpload === true);
-  }, []);
+  }, [locale, router]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -204,35 +214,38 @@ export function Dashboard({ locale }: { locale: Locale }) {
     setBusy(true);
     setNotice("");
     const form = event.currentTarget;
-    const body = new FormData(form);
-    if (directUpload) {
-      const file = selectedFile(form);
-      body.delete("image");
-      if (!file) {
-        setBusy(false);
-        setNotice(text.missing);
+    try {
+      const body = new FormData(form);
+      if (directUpload) {
+        const file = selectedFile(form);
+        body.delete("image");
+        if (!file) {
+          setNotice(text.missing);
+          return;
+        }
+        const stored = await uploadDirect(file);
+        if ("error" in stored) {
+          setNotice(message(locale, stored.error));
+          return;
+        }
+        body.set("imagePath", stored.path);
+        if (stored.id) body.set("id", stored.id);
+      }
+      const response = await fetch("/api/products", { method: "POST", body });
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
         return;
       }
-      const stored = await uploadDirect(file);
-      if ("error" in stored) {
-        setBusy(false);
-        setNotice(message(locale, stored.error));
-        return;
-      }
-      body.set("imagePath", stored.path);
-      if (stored.id) body.set("id", stored.id);
+      form.reset();
+      setProducts(data.products);
+      setImageCount((count) => count + 1);
+      setNotice(text.saved);
+    } catch {
+      setNotice(text.storage);
+    } finally {
+      setBusy(false);
     }
-    const response = await fetch("/api/products", { method: "POST", body });
-    const data = (await response.json()) as CatalogResponse;
-    setBusy(false);
-    if (!response.ok) {
-      setNotice(message(locale, data.error));
-      return;
-    }
-    form.reset();
-    setProducts(data.products);
-    setImageCount((count) => count + 1);
-    setNotice(text.saved);
   }
 
   async function updateProduct(event: FormEvent<HTMLFormElement>, id: string) {
@@ -240,84 +253,113 @@ export function Dashboard({ locale }: { locale: Locale }) {
     setBusy(true);
     setNotice("");
     const form = event.currentTarget;
-    const body = new FormData(form);
-    if (directUpload) {
-      const file = selectedFile(form);
-      body.delete("image");
-      if (file) {
-        const stored = await uploadDirect(file, id);
-        if ("error" in stored) {
-          setBusy(false);
-          setNotice(message(locale, stored.error));
-          return;
+    try {
+      const body = new FormData(form);
+      if (directUpload) {
+        const file = selectedFile(form);
+        body.delete("image");
+        if (file) {
+          const stored = await uploadDirect(file, id);
+          if ("error" in stored) {
+            setNotice(message(locale, stored.error));
+            return;
+          }
+          body.set("imagePath", stored.path);
         }
-        body.set("imagePath", stored.path);
       }
+      const response = await fetch(`/api/products/${id}`, { method: "PATCH", body });
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
+        return;
+      }
+      setEditing(null);
+      setProducts(data.products);
+      setNotice(text.saved);
+    } catch {
+      setNotice(text.storage);
+    } finally {
+      setBusy(false);
     }
-    const response = await fetch(`/api/products/${id}`, { method: "PATCH", body });
-    const data = (await response.json()) as CatalogResponse;
-    setBusy(false);
-    if (!response.ok) {
-      setNotice(message(locale, data.error));
-      return;
-    }
-    setEditing(null);
-    setProducts(data.products);
-    setNotice(text.saved);
   }
 
   async function deleteProduct(id: string) {
     setBusy(true);
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
-    setBusy(false);
-    setEditing(null);
-    await load();
+    setNotice("");
+    try {
+      const removed = products.find((product) => product.id === id);
+      const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
+        return;
+      }
+      setEditing(null);
+      setProducts(data.products);
+      setImageCount((count) => Math.max(0, count - (removed?.images.filter(Boolean).length ?? 0)));
+    } catch {
+      setNotice(text.storage);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function addCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const name = String(new FormData(form).get("name") ?? "");
-    const response = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    const data = (await response.json()) as CatalogResponse;
-    if (!response.ok) {
-      setNotice(message(locale, data.error));
-      return;
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
+        return;
+      }
+      form.reset();
+      await load();
+    } catch {
+      setNotice(text.storage);
     }
-    form.reset();
-    await load();
   }
 
   async function renameCategory(event: FormEvent<HTMLFormElement>, id: string) {
     event.preventDefault();
     const name = String(new FormData(event.currentTarget).get("name") ?? "");
-    const response = await fetch(`/api/categories/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    const data = (await response.json()) as CatalogResponse;
-    if (!response.ok) {
-      setNotice(message(locale, data.error));
-      return;
+    try {
+      const response = await fetch(`/api/categories/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
+        return;
+      }
+      setNotice(text.saved);
+      await load();
+    } catch {
+      setNotice(text.storage);
     }
-    setNotice(text.saved);
-    await load();
   }
 
   async function deleteCategory(id: string) {
-    const response = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-    const data = (await response.json()) as CatalogResponse;
-    if (!response.ok) {
-      setNotice(message(locale, data.error));
-      return;
+    try {
+      const response = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      const data = (await response.json()) as CatalogResponse;
+      if (!response.ok) {
+        setNotice(message(locale, data.error));
+        return;
+      }
+      setNotice("");
+      await load();
+    } catch {
+      setNotice(text.storage);
     }
-    setNotice("");
-    await load();
   }
 
   return (

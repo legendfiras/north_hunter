@@ -45,6 +45,7 @@ export async function saveProductImage(file: File, id: string) {
     });
     return { path: `/media/${filename}` };
   }
+  if (process.env.VERCEL) return { error: "storage" as const };
   ensureUploadsDir();
   await import("node:fs").then((fs) => fs.writeFileSync(publicUploadPath(filename), bytes));
   return { path: `/media/${filename}` };

@@ -1,6 +1,6 @@
 import { denyUnlessSignedIn } from "@/lib/auth";
 import { acceptRemoteImage, canAddImage, extensionFor, saveProductImage } from "@/lib/uploads";
-import { readCatalog, slugFromName, storageResponse, toProducts, writeCatalog } from "@/lib/store";
+import { readCatalog, removeUpload, slugFromName, storageResponse, toProducts, writeCatalog } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +57,7 @@ export async function POST(request: Request) {
   try {
     await writeCatalog(catalog);
   } catch (error) {
+    await removeUpload(saved.path).catch(() => undefined);
     const response = storageResponse(error);
     if (response) return response;
     throw error;

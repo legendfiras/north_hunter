@@ -26,6 +26,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const file = form.get("image");
   const imagePath = String(form.get("imagePath") ?? "").trim();
+  const previousImages = [...product.images];
+  let replacementPath: string | null = null;
   if (imagePath || (file instanceof File && file.size > 0)) {
     if (!imagePath && file instanceof File && !extensionFor(file)) {
       return Response.json({ error: "type" }, { status: 400 });
@@ -35,9 +37,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       const status = saved.error === "storage" ? 503 : 400;
       return Response.json({ error: saved.error }, { status });
     }
-    for (const previous of product.images) {
-      if (previous !== saved.path) await removeUpload(previous);
-    }
+    replacementPath = saved.path;
     product.images = [saved.path];
   }
 
@@ -47,10 +47,14 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     await writeCatalog(catalog);
   } catch (error) {
+    if (replacementPath && !previousImages.includes(replacementPath)) {
+      await removeUpload(replacementPath).catch(() => undefined);
+    }
     const response = storageResponse(error);
     if (response) return response;
     throw error;
   }
+  await Promise.allSettled(previousImages.filter((image) => !product.images.includes(image)).map(removeUpload));
   return Response.json({ products: toProducts(catalog) });
 }
 
@@ -61,7 +65,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const catalog = await readCatalog();
   const product = catalog.products.find((item) => item.id === id);
   if (!product) return Response.json({ error: "missing" }, { status: 404 });
-  for (const image of product.images) await removeUpload(image);
+  const previousImages = [...product.images];
   catalog.products = catalog.products.filter((item) => item.id !== id);
   try {
     await writeCatalog(catalog);
@@ -70,5 +74,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (response) return response;
     throw error;
   }
+  await Promise.allSettled(previousImages.map(removeUpload));
   return Response.json({ products: toProducts(catalog) });
 }
