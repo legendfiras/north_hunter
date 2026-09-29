@@ -10,6 +10,10 @@ type CatalogResponse = {
   products: Product[];
   imageCount: number;
   imageLimit: number;
+  directUpload?: boolean;
+  uploadUrl?: string;
+  path?: string;
+  id?: string;
   error?: string;
 };
 
@@ -44,6 +48,8 @@ const copy = {
     size: "That photo is larger than 8 MB.",
     limit: "The store already has 30 photos.",
     categoryError: "Choose a category.",
+    upload: "The photo could not be uploaded.",
+    storage: "Storage is not configured, so this change was not saved.",
     saved: "Saved.",
   },
   ar: {
@@ -76,6 +82,8 @@ const copy = {
     size: "حجم الصورة أكبر من 8 ميغابايت.",
     limit: "وصل المتجر إلى 30 صورة.",
     categoryError: "اختر قسمًا.",
+    upload: "تعذّر رفع الصورة.",
+    storage: "التخزين غير مهيأ، ولم يُحفظ هذا التغيير.",
     saved: "تم الحفظ.",
   },
 } as const;
@@ -131,6 +139,8 @@ function message(locale: Locale, error: string | undefined) {
   if (error === "category") return text.categoryError;
   if (error === "used") return text.used;
   if (error === "missing") return text.missing;
+  if (error === "upload") return text.upload;
+  if (error === "storage") return text.storage;
   return "";
 }
 
@@ -140,6 +150,7 @@ export function Dashboard({ locale }: { locale: Locale }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [imageCount, setImageCount] = useState(0);
   const [imageLimit, setImageLimit] = useState(30);
+  const [directUpload, setDirectUpload] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -155,6 +166,7 @@ export function Dashboard({ locale }: { locale: Locale }) {
     setProducts(data.products);
     setImageCount(data.imageCount);
     setImageLimit(data.imageLimit);
+    setDirectUpload(data.directUpload === true);
   }, []);
 
   useEffect(() => {
@@ -164,12 +176,53 @@ export function Dashboard({ locale }: { locale: Locale }) {
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  async function uploadDirect(file: File, productId = "") {
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentType: file.type, size: file.size, productId }),
+    });
+    const data = (await response.json()) as CatalogResponse;
+    if (!response.ok || !data.uploadUrl || !data.path) return { error: data.error || "upload" };
+    const uploaded = await fetch(data.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!uploaded.ok) return { error: "upload" };
+    return { path: data.path, id: data.id ?? "" };
+  }
+
+  function selectedFile(form: HTMLFormElement) {
+    const input = form.elements.namedItem("image");
+    if (!(input instanceof HTMLInputElement)) return null;
+    return input.files?.[0] ?? null;
+  }
+
   async function submitProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setNotice("");
     const form = event.currentTarget;
-    const response = await fetch("/api/products", { method: "POST", body: new FormData(form) });
+    const body = new FormData(form);
+    if (directUpload) {
+      const file = selectedFile(form);
+      body.delete("image");
+      if (!file) {
+        setBusy(false);
+        setNotice(text.missing);
+        return;
+      }
+      const stored = await uploadDirect(file);
+      if ("error" in stored) {
+        setBusy(false);
+        setNotice(message(locale, stored.error));
+        return;
+      }
+      body.set("imagePath", stored.path);
+      if (stored.id) body.set("id", stored.id);
+    }
+    const response = await fetch("/api/products", { method: "POST", body });
     const data = (await response.json()) as CatalogResponse;
     setBusy(false);
     if (!response.ok) {
@@ -185,7 +238,22 @@ export function Dashboard({ locale }: { locale: Locale }) {
     event.preventDefault();
     setBusy(true);
     setNotice("");
-    const response = await fetch(`/api/products/${id}`, { method: "PATCH", body: new FormData(event.currentTarget) });
+    const form = event.currentTarget;
+    const body = new FormData(form);
+    if (directUpload) {
+      const file = selectedFile(form);
+      body.delete("image");
+      if (file) {
+        const stored = await uploadDirect(file, id);
+        if ("error" in stored) {
+          setBusy(false);
+          setNotice(message(locale, stored.error));
+          return;
+        }
+        body.set("imagePath", stored.path);
+      }
+    }
+    const response = await fetch(`/api/products/${id}`, { method: "PATCH", body });
     const data = (await response.json()) as CatalogResponse;
     setBusy(false);
     if (!response.ok) {

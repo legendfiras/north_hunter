@@ -103,7 +103,14 @@ export async function Footer({ locale }: FooterProps) {
             <span className="mx-2 text-cream/25" aria-hidden>
               ·
             </span>
-            {footer.demo}
+            <a
+              href="https://roytech.solutions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cream/70 underline-offset-2 hover:text-gold hover:underline"
+            >
+              {footer.credit}
+            </a>
           </p>
           <LanguageSwitch locale={locale} variant="plain" />
         </Container>

@@ -78,8 +78,18 @@ export async function writeCatalog(data: CatalogData) {
     });
     return;
   }
+  if (process.env.VERCEL) {
+    throw new Error("storage");
+  }
   fs.mkdirSync(path.dirname(dataFile), { recursive: true });
   fs.writeFileSync(dataFile, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+export function storageResponse(error: unknown) {
+  if (error instanceof Error && error.message === "storage") {
+    return Response.json({ error: "storage" }, { status: 503 });
+  }
+  return null;
 }
 
 export function imageCount(data: CatalogData) {
@@ -115,7 +125,12 @@ export async function removeUpload(publicPath: string) {
   if (!name) return;
   if (publicPath.startsWith("/media/")) {
     const bucket = await mediaBucket();
-    if (bucket) await bucket.delete(mediaObjectKey(name));
+    if (bucket) {
+      await bucket.delete(mediaObjectKey(name));
+      return;
+    }
+    const file = publicUploadPath(name);
+    if (file.startsWith(uploadsDir) && fs.existsSync(file)) fs.unlinkSync(file);
     return;
   }
   if (!publicPath.startsWith("/uploads/")) return;

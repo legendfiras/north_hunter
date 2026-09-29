@@ -1,6 +1,6 @@
 import { denyUnlessSignedIn } from "@/lib/auth";
-import { extensionFor, saveProductImage } from "@/lib/uploads";
-import { readCatalog, removeUpload, toProducts, writeCatalog } from "@/lib/store";
+import { acceptRemoteImage, extensionFor, saveProductImage } from "@/lib/uploads";
+import { readCatalog, removeUpload, storageResponse, toProducts, writeCatalog } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +25,16 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const file = form.get("image");
-  if (file instanceof File && file.size > 0) {
-    if (!extensionFor(file)) return Response.json({ error: "type" }, { status: 400 });
-    const saved = await saveProductImage(file, product.id);
-    if ("error" in saved) return Response.json({ error: saved.error }, { status: 400 });
+  const imagePath = String(form.get("imagePath") ?? "").trim();
+  if (imagePath || (file instanceof File && file.size > 0)) {
+    if (!imagePath && file instanceof File && !extensionFor(file)) {
+      return Response.json({ error: "type" }, { status: 400 });
+    }
+    const saved = imagePath ? await acceptRemoteImage(imagePath, product.id) : await saveProductImage(file as File, product.id);
+    if ("error" in saved) {
+      const status = saved.error === "storage" ? 503 : 400;
+      return Response.json({ error: saved.error }, { status });
+    }
     for (const previous of product.images) {
       if (previous !== saved.path) await removeUpload(previous);
     }
@@ -38,7 +44,13 @@ export async function PATCH(request: Request, context: RouteContext) {
   product.name = { en: name, ar: name };
   product.price = Math.round(price);
   product.category = category;
-  await writeCatalog(catalog);
+  try {
+    await writeCatalog(catalog);
+  } catch (error) {
+    const response = storageResponse(error);
+    if (response) return response;
+    throw error;
+  }
   return Response.json({ products: toProducts(catalog) });
 }
 
@@ -51,6 +63,12 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (!product) return Response.json({ error: "missing" }, { status: 404 });
   for (const image of product.images) await removeUpload(image);
   catalog.products = catalog.products.filter((item) => item.id !== id);
-  await writeCatalog(catalog);
+  try {
+    await writeCatalog(catalog);
+  } catch (error) {
+    const response = storageResponse(error);
+    if (response) return response;
+    throw error;
+  }
   return Response.json({ products: toProducts(catalog) });
 }

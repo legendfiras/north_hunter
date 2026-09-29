@@ -1,5 +1,5 @@
 import { denyUnlessSignedIn } from "@/lib/auth";
-import { categoryIdFromName, readCatalog, writeCatalog } from "@/lib/store";
+import { categoryIdFromName, readCatalog, storageResponse, writeCatalog } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +15,12 @@ export async function POST(request: Request) {
     catalog.categories.map((item) => item.id),
   );
   catalog.categories.push({ id, name: { en: name, ar: name } });
-  await writeCatalog(catalog);
+  try {
+    await writeCatalog(catalog);
+  } catch (error) {
+    const response = storageResponse(error);
+    if (response) return response;
+    throw error;
+  }
   return Response.json({ categories: catalog.categories });
 }

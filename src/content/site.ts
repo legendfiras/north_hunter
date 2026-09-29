@@ -64,7 +64,7 @@ export const siteContent = {
       contact: "Contact us",
       contactShort: "Contact",
       searchLabel: "Search products",
-      searchPlaceholder: "Search clothing, camping, optics",
+      searchPlaceholder: "Search products",
     },
     ar: {
       openMenu: "فتح القائمة",
@@ -73,7 +73,7 @@ export const siteContent = {
       contact: "تواصل معنا",
       contactShort: "تواصل",
       searchLabel: "البحث في المنتجات",
-      searchPlaceholder: "ابحث في الملابس والتخييم والبصريات",
+      searchPlaceholder: "ابحث في المنتجات",
     },
   },
   banner: {
@@ -172,8 +172,8 @@ export const siteContent = {
   catalog: {
     allHeading: { en: "Products", ar: "المنتجات" },
     allIntro: {
-      en: "Search the demonstration catalog and filter by category. Prices below are sample figures.",
-      ar: "ابحث في كتالوج العرض وصفِّ حسب القسم. الأسعار أدناه أرقام عيّنة.",
+      en: "Search the products and filter by category.",
+      ar: "ابحث في المنتجات وصفِّ حسب القسم.",
     },
     priceNote: {
       en: "The cart does not take payment.",
@@ -260,22 +260,22 @@ export const siteContent = {
   },
   footer: {
     en: {
-      blurb: "Hunting clothing, camping accessories, and outdoor gear.",
+      blurb: "Hunting shotguns, cartridges, and outdoor gear.",
       copyright: "© 2026 North Hunter",
       dashboard: "Dashboard",
       categories: "Categories",
       explore: "Explore",
       visit: "Contact",
-      demo: "Demonstration website",
+      credit: "Website by Roytech",
     },
     ar: {
-      blurb: "ملابس صيد، لوازم تخييم ومعدات للطلعات.",
+      blurb: "بنادق صيد، خراطيش ومعدات للطلعات.",
       copyright: "© 2026 مؤسسة النور",
       dashboard: "لوحة التحكم",
       categories: "الأقسام",
       explore: "تصفّح",
       visit: "التواصل",
-      demo: "موقع عرض تجريبي",
+      credit: "الموقع من Roytech",
     },
   },
 } as const;
