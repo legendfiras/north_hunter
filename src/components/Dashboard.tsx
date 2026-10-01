@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { upload } from "@vercel/blob/client";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n";
 import type { Category, Product } from "@/content/products";
@@ -13,7 +12,8 @@ type CatalogResponse = {
   imageCount: number;
   imageLimit: number;
   directUpload?: boolean;
-  pathname?: string;
+  uploadUrl?: string;
+  headers?: Record<string, string>;
   path?: string;
   id?: string;
   error?: string;
@@ -142,7 +142,7 @@ function message(locale: Locale, error: string | undefined) {
   if (error === "used") return text.used;
   if (error === "missing") return text.missing;
   if (error === "upload") return text.upload;
-  if (error === "storage" || error === "migration") return text.storage;
+  if (error === "storage" || error === "initialization") return text.storage;
   return text.storage;
 }
 
@@ -194,9 +194,14 @@ export function Dashboard({ locale }: { locale: Locale }) {
       body: JSON.stringify({ contentType: file.type, size: file.size, productId }),
     });
     const data = (await response.json()) as CatalogResponse;
-    if (!response.ok || !data.pathname || !data.path) return { error: data.error || "upload" };
+    if (!response.ok || !data.uploadUrl || !data.path) return { error: data.error || "upload" };
     try {
-      await upload(data.pathname, file, { access: "public", handleUploadUrl: "/api/uploads" });
+      const uploaded = await fetch(data.uploadUrl, {
+        method: "PUT",
+        headers: data.headers,
+        body: file,
+      });
+      if (!uploaded.ok) return { error: "upload" };
     } catch {
       return { error: "upload" };
     }

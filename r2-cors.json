@@ -1,9 +1,16 @@
-[
-  {
-    "AllowedOrigins": ["*"],
-    "AllowedMethods": ["PUT", "HEAD"],
-    "AllowedHeaders": ["Content-Type", "Content-Length"],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3600
-  }
-]
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://north-hunter-taleb.roytech.solutions",
+          "http://localhost:3000"
+        ],
+        "methods": ["PUT"],
+        "headers": ["Content-Type", "Cache-Control"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

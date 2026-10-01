@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { revalidatePath } from "next/cache";
 import type { Category, Product } from "@/content/products";
 import seedFile from "../../data/catalog.json";
-import { mediaBucket, mediaObjectKey } from "@/lib/bucket";
+import { catalogKey, legacyMediaObjectKey, mediaBucket, publicFileKey } from "@/lib/bucket";
 
 export const IMAGE_LIMIT = 30;
 
@@ -55,13 +56,13 @@ function readLocalCatalog(): CatalogData {
 export async function readCatalog(): Promise<CatalogData> {
   const bucket = await mediaBucket();
   if (!bucket) return readLocalCatalog();
-  const raw = await bucket.getCatalog();
-  if (raw === null) {
-    // Display the checked-in seed without writing over an un-migrated catalog.
+  const object = await bucket.get(catalogKey());
+  if (!object) {
+    // Display the checked-in fallback without publishing local image paths to R2.
     return bundledSeed();
   }
   try {
-    const parsed = JSON.parse(raw) as CatalogData;
+    const parsed = JSON.parse(await object.text()) as CatalogData;
     if (!parsed || !Array.isArray(parsed.categories) || !Array.isArray(parsed.products)) return emptyCopy();
     return parsed;
   } catch {
@@ -72,20 +73,22 @@ export async function readCatalog(): Promise<CatalogData> {
 export async function writeCatalog(data: CatalogData) {
   const bucket = await mediaBucket();
   if (bucket) {
-    if (!(await bucket.catalogExists())) throw new Error("migration");
-    await bucket.putCatalog(JSON.stringify(data));
+    if (!(await bucket.exists(catalogKey()))) throw new Error("initialization");
+    await bucket.put(catalogKey(), JSON.stringify(data), {
+      httpMetadata: { contentType: "application/json" },
+      cacheControl: "no-store",
+    });
+    revalidatePath("/", "layout");
     return;
   }
-  if (process.env.VERCEL) {
-    throw new Error("storage");
-  }
+  if (process.env.VERCEL) throw new Error("storage");
   fs.mkdirSync(path.dirname(dataFile), { recursive: true });
   fs.writeFileSync(dataFile, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
 export function storageResponse(error: unknown) {
-  if (error instanceof Error && error.message === "migration") {
-    return Response.json({ error: "migration" }, { status: 503 });
+  if (error instanceof Error && error.message === "initialization") {
+    return Response.json({ error: "initialization" }, { status: 503 });
   }
   if (error instanceof Error && error.message === "storage") {
     return Response.json({ error: "storage" }, { status: 503 });
@@ -122,12 +125,18 @@ export function safeUploadName(publicPath: string) {
 }
 
 export async function removeUpload(publicPath: string) {
+  const publicKey = publicFileKey(publicPath);
+  if (publicKey) {
+    const bucket = await mediaBucket();
+    if (bucket) await bucket.delete(publicKey);
+    return;
+  }
   const name = safeUploadName(publicPath);
   if (!name) return;
   if (publicPath.startsWith("/media/")) {
     const bucket = await mediaBucket();
     if (bucket) {
-      await bucket.delete(mediaObjectKey(name));
+      await bucket.delete(legacyMediaObjectKey(name));
       return;
     }
     const file = publicUploadPath(name);

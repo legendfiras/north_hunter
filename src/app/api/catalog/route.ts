@@ -1,5 +1,5 @@
 import { denyUnlessSignedIn } from "@/lib/auth";
-import { blobConfigured } from "@/lib/bucket";
+import { r2Configured } from "@/lib/bucket";
 import { IMAGE_LIMIT, imageCount, readCatalog, toProducts } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,6 @@ export async function GET() {
     products: toProducts(catalog),
     imageCount: imageCount(catalog),
     imageLimit: IMAGE_LIMIT,
-    directUpload: blobConfigured(),
+    directUpload: await r2Configured(),
   });
 }

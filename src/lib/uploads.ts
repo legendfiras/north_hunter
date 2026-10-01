@@ -1,10 +1,9 @@
-import { mediaBucket, mediaObjectKey } from "@/lib/bucket";
+import { mediaBucket, productMediaObjectKey, publicFileKey } from "@/lib/bucket";
 import {
   IMAGE_LIMIT,
   ensureUploadsDir,
   imageCount,
   publicUploadPath,
-  safeUploadName,
   type CatalogData,
 } from "@/lib/store";
 
@@ -24,26 +23,20 @@ export function extensionFor(file: File) {
   return extensionForType(file.type);
 }
 
-export function mediaNameForProduct(id: string, publicPath: string) {
-  if (!publicPath.startsWith("/media/")) return null;
-  const name = safeUploadName(publicPath);
-  if (!name) return null;
-  const stem = name.slice(0, name.lastIndexOf("."));
-  return stem === id ? name : null;
-}
-
 export async function saveProductImage(file: File, id: string) {
   const ext = extensionFor(file);
   if (!ext) return { error: "type" as const };
   if (file.size > MAX_IMAGE_BYTES) return { error: "size" as const };
-  const filename = `${id}.${ext}`;
+  const filename = `${id}-${crypto.randomUUID()}.${ext}`;
   const bytes = new Uint8Array(await file.arrayBuffer());
   const bucket = await mediaBucket();
   if (bucket) {
-    await bucket.put(mediaObjectKey(filename), bytes, {
+    const key = productMediaObjectKey(id, ext);
+    await bucket.put(key, bytes, {
       httpMetadata: { contentType: file.type },
+      cacheControl: "public, max-age=31536000, immutable",
     });
-    return { path: `/media/${filename}` };
+    return { path: bucket.publicUrl(key) };
   }
   if (process.env.VERCEL) return { error: "storage" as const };
   ensureUploadsDir();
@@ -56,10 +49,10 @@ export function canAddImage(catalog: CatalogData) {
 }
 
 export async function acceptRemoteImage(publicPath: string, id: string) {
-  const name = mediaNameForProduct(id, publicPath);
-  if (!name) return { error: "missing" as const };
+  const key = publicFileKey(publicPath);
+  if (!key || !key.startsWith(`products/${id}/`)) return { error: "missing" as const };
   const bucket = await mediaBucket();
   if (!bucket) return { error: "storage" as const };
-  if (!(await bucket.exists(mediaObjectKey(name)))) return { error: "missing" as const };
-  return { path: `/media/${name}` };
+  if (!(await bucket.exists(key))) return { error: "missing" as const };
+  return { path: bucket.publicUrl(key) };
 }

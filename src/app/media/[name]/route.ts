@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { mediaBucket, mediaObjectKey } from "@/lib/bucket";
+import { legacyMediaObjectKey, mediaBucket } from "@/lib/bucket";
 import { publicUploadPath, safeUploadName } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function GET(_request: Request, context: { params: Promise<{ name: 
   const type = types[ext] || "application/octet-stream";
   const bucket = await mediaBucket();
   if (bucket) {
-    const object = await bucket.get(mediaObjectKey(name));
+    const object = await bucket.get(legacyMediaObjectKey(name));
     if (!object) return new Response("Not found", { status: 404 });
     return new Response(await object.arrayBuffer(), {
       headers: {

@@ -18,7 +18,7 @@ export default async function AdminPage() {
 
   return (
     <Container className="py-8 md:py-12">
-      <Link href="/en" aria-label={logoAlt} className="inline-flex">
+      <Link href="/en" prefetch={false} aria-label={logoAlt} className="inline-flex">
         <Logo locale="en" showName={false} priority />
       </Link>
       {signedIn ? <AdminHome /> : <LoginForm />}
